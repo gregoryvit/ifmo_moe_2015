@@ -30,4 +30,4 @@
 
 ## Реализация
 
-![](https://www.dropbox.com/s/frsxj5i3zgbxl8w/moe_2015.png?dl=0)
+![](https://www.dropbox.com/s/frsxj5i3zgbxl8w/moe_2015.png?raw=1)
