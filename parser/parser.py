@@ -301,39 +301,34 @@ from rdflib.namespace import RDF, FOAF, XSD
 
 
 def rdf_resource(resource_name):
-    dbo = Namespace("http://dbpedia.org/resource/")
-    foaf = Namespace("http://xmlns.com/foaf/0.1/")
-    ext = Namespace("http://example.org/extension/")
-    dcterms = Namespace("http://purl.org/dc/terms/")
-    prism = Namespace("http://prismstandard.org/namespaces/basic/2.0/")
+    n = Namespace("http://example.org/people/")
 
     map_dict = [
-        ['Article', ext['article']],
-        ['Author', ext['creator']], # Probably isn't an object
-        ['Degree', ext['degree']], # Maybe we should use dbo:academic_degree
-        ['Volume', ext['journal_volume']],
-        ['description', dbo['description']],
-        ['title', dcterms['title']],
-        ['article_url', foaf['open_id']], # Possibly wrong assigned
-        ['ocis_codes', ext['ocis_codes']],
-        ['udc_codes', dcterms['udc']],
-        ['keywords_codes', prism['keywords']],
-        ['from_page', prism['startingPage']],
-        ['to_page', prism['endingPage']],
-        ['received_date', prism['publicationDate']], # Probably correct assigned
-        ['references', dcterms['references']], # Possibly wrong assigned
-        ['name', foaf['name']],
-        ['surname', foaf['familyName']],
-        ['grade', ext['grade']],
-        ['authors', ext['authorList']],
-        ['articles', ext['articles']],
-        ['number', prism['issueIdentifier']],
-        ['year', prism['publicationDate']] # Probably wrong assigned
+        ['Article', 'RCVKz6OEi5rIcicOxquej0D'],
+        ['Author', 'RCsynwco1lNUQSsvKWT1R0B'],
+        ['Degree', 'RBHBiJft0rtFffF2YgVz4Cm'],
+        ['Volume', 'RBsLWiCOTvVBkqJ7ydEOUzZ'],
+        ['description', 'RDhDg1ElS8IcTFRLUn3TG8'],
+        ['title', 'RYy1OIRPJQplAn7FJC9xHp'],
+        ['article_url', 'RDFPrhX68pZsRQ5NHuRMQe7'],
+        ['ocis_codes', 'RoNPbI6VM2sfQeQMAiCP7i'],
+        ['udc_codes', 'R9IM7u2M9PRflXGo8M0jkY'],
+        ['keywords_codes', 'R9m0ne3covxvSEynK5zslb9'],
+        ['from_page', 'RBBOGI2fxoMGuPFz2JThOOl'],
+        ['to_page', 'R8tfbXbtSOEEgaBsrgi1pAc'],
+        ['received_date', 'R718g5LMORvxE9oaN1Fr1et'],
+        ['references', 'RBYnSi3XtGUdI7mbLYX9WGE'],
+        ['name', 'RBOssYsXvkXlxLKJ8qTxu53'],
+        ['grade', 'RCHcO72LEkIK8UDU56JW3qG'],
+        ['authors', 'R7T9j3EvmeuTp9LIZ35kg1Y'],
+        ['articles', 'RiTFyuRnnCmZwDHFwVbEX5'],
+        ['number', 'R9d8CeyfbC5EL6ResACOLsQ'],
+        ['year', 'R92IguB49CXQNGjTzS628A3']
     ]
 
     for element in map_dict:
         if resource_name == element[0]:
-            return element[1]
+            return n[element[1]]
 
     return None
 
