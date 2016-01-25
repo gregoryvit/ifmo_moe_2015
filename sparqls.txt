@@ -1,60 +1,50 @@
-# Get volumes
+# Get Issues
 
-PREFIX ns1: <http://example.org/people/>
-PREFIX application: <http://purl.org/NET/mediatypes/application/>
-PREFIX fabio: <http://purl.org/spar/fabio/>
-PREFIX frbr: <http://purl.org/vocab/frbr/core#>
-PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX bibo: <http://purl.org/ontology/bibo/>
 
-SELECT ?volume_name 
+SELECT ?issueLabel 
 WHERE {
-    ?name_name a ns1:volume
+    ?issue rdf:type bibo:Issue;
+           rdfs:label ?issueLabel.
 }
 
-# Get volumes with articles with an author being a student
+# Get issues with articles with an author being a student
 
-PREFIX ns1: <http://example.org/people/>
-PREFIX application: <http://purl.org/NET/mediatypes/application/>
-PREFIX fabio: <http://purl.org/spar/fabio/>
-PREFIX frbr: <http://purl.org/vocab/frbr/core#>
-PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX bibo: <http://purl.org/ontology/bibo/>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
 
-SELECT ?volume_name ?article ?author ?grade_name
+SELECT ?issue_name ?article_name ?author_name ?grade
 WHERE {
-    ?volume_name a ns1:volume;
-                 ns1:articles ?article.
-    ?article ns1:authors ?author.
-    ?author ns1:grade ?grade.
-    ?grade ns1:name ?grade_name.
-    FILTER(?grade_name = "студент")
+    ?article rdf:type bibo:Article;
+             dc:creator ?author;
+             rdfs:label ?article_name;
+             dc:isPartOf ?issue.
+    ?issue rdfs:label ?issue_name.
+    ?author foaf:title ?grade;
+            foaf:surname ?author_name.
+    FILTER regex(?grade, "СЃС‚СѓРґРµРЅС‚.*").
 }
 
 # Get articles by keywords
 
-PREFIX ns1: <http://example.org/people/>
-PREFIX application: <http://purl.org/NET/mediatypes/application/>
-PREFIX fabio: <http://purl.org/spar/fabio/>
-PREFIX frbr: <http://purl.org/vocab/frbr/core#>
-PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX bibo: <http://purl.org/ontology/bibo/>
 
-SELECT ?article ?keyword
+SELECT ?article ?article_name ?keyword
 WHERE {
-    ?article a ns1:article;
-             ns1:keywords_codes ?keyword.
-    FILTER(CONTAINS(?keyword, "микрообъектив"))
+    ?article rdf:type bibo:Article;
+             rdfs:label ?article_name;
+             bibo:subject ?keyword.
+    FILTER(?keyword = "РіРѕР»РѕРіСЂР°С„РёСЏ").
 }

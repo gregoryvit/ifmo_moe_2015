@@ -353,14 +353,6 @@ class Helper:
         return ' '.join(result_name_items)
 
 
-def rdf_from_degree(degree, graph):
-    degree_res = BNode()
-    graph.add((degree_res, RDF.type, rdf_resource('Degree')))
-    graph.add((degree_res, rdf_resource('name'), Literal(degree)))
-
-    return degree_res
-
-
 def rdf_from_author(author, graph):
     author_res = BNode()
     graph.add((author_res, RDF.type, FOAF.Person))
@@ -371,7 +363,7 @@ def rdf_from_author(author, graph):
         graph.add((author_res, FOAF.surname, Literal(Helper.surname_from_fullname(author['name']))))
 
     if 'grade' in author:
-        graph.add((author_res, FOAF.title, rdf_from_degree(author['grade'], graph)))
+        graph.add((author_res, FOAF.title, Literal(author['grade'])))
 
     return author_res
 
@@ -381,8 +373,6 @@ def rdf_from_article(article, graph):
         return
 
     article_res = URIRef('http://' + urllib.quote('opticjourn.ru' + article['annotation_path']))
-    # graph.add((article_res, RDF.type, rdf_resource('Article')))
-
     graph.add((article_res, RDF.type, BIBO.Article))
 
     for key, value in article.iteritems():
@@ -417,13 +407,17 @@ def rdf_from_article(article, graph):
             for reference in value:
                 graph.add((article_res, BIBO.based_near, Literal(reference['raw_string'])))
 
-        # if key == 'udc_codes':
-        #     graph.add((article_res, BIBO.pageStart, Literal(value)))
+        if key == 'ocis_codes':
+            for list_value in value:
+                graph.add((article_res, BIBO.identifier, Literal('OCIS:%s' % list_value)))
 
-        if isinstance(value, list):
-            if key in ['ocis_codes', 'keywords_codes', 'udc_codes']:
-                for list_value in value:
-                    graph.add((article_res, rdf_resource(key), Literal(list_value)))
+        if key == 'udc_codes':
+            for list_value in value:
+                graph.add((article_res, BIBO.identifier, Literal('UDC:%s' % list_value)))
+
+        if key == 'keywords_codes':
+            for list_value in value:
+                graph.add((article_res, BIBO.subject, Literal(list_value)))
 
     return article_res
 
@@ -440,10 +434,12 @@ def rdf_from_volume(volume, year, graph):
     for article in volume['articles']:
         article_res = rdf_from_article(article, graph)
         if article_res:
-            graph.add((article_res, DC.isPartOf, volume_res))
             if 'number' in volume:
                 graph.add((article_res, BIBO.volume, Literal(volume['number'])))
+            graph.add((volume_res, DC.hasPart, article_res))
             graph.add((volume_res, BIBO.hasPart, article_res))
+            graph.add((article_res, DC.isPartOf, volume_res))
+            graph.add((article_res, BIBO.isPartOf, volume_res))
 
     graph.add((volume_res, BIBO.date, Literal(year, datatype=XSD.date)))
 
@@ -476,6 +472,9 @@ def make_rdf():
             for idx, volume in enumerate(volumes):
                 volume_rdf = rdf_from_volume(volume, year, graph)
                 graph.add((magazine_rdf, BIBO.hasPart, volume_rdf))
+                graph.add((volume_rdf, BIBO.isPartOf, magazine_rdf))
+                graph.add((magazine_rdf, DC.hasPart, volume_rdf))
+                graph.add((volume_rdf, DC.isPartOf, magazine_rdf))
                 graph.add((volume_rdf, BIBO.volume, Literal(idx)))
 
         graph.bind("dc", DC)
