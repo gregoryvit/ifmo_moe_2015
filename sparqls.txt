@@ -1,0 +1,60 @@
+# Get volumes
+
+PREFIX ns1: <http://example.org/people/>
+PREFIX application: <http://purl.org/NET/mediatypes/application/>
+PREFIX fabio: <http://purl.org/spar/fabio/>
+PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+SELECT ?volume_name 
+WHERE {
+    ?name_name a ns1:volume
+}
+
+# Get volumes with articles with an author being a student
+
+PREFIX ns1: <http://example.org/people/>
+PREFIX application: <http://purl.org/NET/mediatypes/application/>
+PREFIX fabio: <http://purl.org/spar/fabio/>
+PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+SELECT ?volume_name ?article ?author ?grade_name
+WHERE {
+    ?volume_name a ns1:volume;
+                 ns1:articles ?article.
+    ?article ns1:authors ?author.
+    ?author ns1:grade ?grade.
+    ?grade ns1:name ?grade_name.
+    FILTER(?grade_name = "студент")
+}
+
+# Get articles by keywords
+
+PREFIX ns1: <http://example.org/people/>
+PREFIX application: <http://purl.org/NET/mediatypes/application/>
+PREFIX fabio: <http://purl.org/spar/fabio/>
+PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+SELECT ?article ?keyword
+WHERE {
+    ?article a ns1:article;
+             ns1:keywords_codes ?keyword.
+    FILTER(CONTAINS(?keyword, "микрообъектив"))
+}
