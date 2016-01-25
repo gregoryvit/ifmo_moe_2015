@@ -1,4 +1,5 @@
 # coding=utf-8
+import io
 from pprint import pprint
 
 __author__ = 'gregoryvit'
@@ -179,6 +180,8 @@ def load_magazine_publications(path, base_url):
         current_publication['authors'] = [author.strip() for author in current_titles.pop().split(',')]
         current_publication['title'] = '\n'.join(current_titles)
 
+        print ' '.join(current_publication['authors'])
+
         results.append(current_publication)
         current_titles = []
 
@@ -292,16 +295,18 @@ def load_data():
         for year, volumes in magazines.iteritems()
         }
 
-    with open('results.json', 'w+') as the_file:
-        the_file.write(json.dumps(loaded_data))
+    with io.open('results.json', 'w+', encoding='utf8') as the_file:
+        the_file.write(json.dumps(loaded_data, ensure_ascii=False))
 
 
 from rdflib import Graph, URIRef, BNode, Literal, Namespace
-from rdflib.namespace import RDF, FOAF, XSD
+from rdflib.namespace import RDF, FOAF, XSD, DC, RDFS
+
+BIBO = Namespace('http://purl.org/ontology/bibo/')
 
 
 def rdf_resource(resource_name):
-    n = Namespace("http://example.org/people/")
+    n = Namespace("http://webprotege.stanford.edu/")
 
     map_dict = [
         ['Article', 'RCVKz6OEi5rIcicOxquej0D'],
@@ -333,6 +338,21 @@ def rdf_resource(resource_name):
     return None
 
 
+class Helper:
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def surname_from_fullname(fullname):
+        result_name = fullname.replace('.', ' ')
+        name_items = result_name.split(' ')
+        result_name_items = []
+        for item in name_items:
+            if item and len(item.strip()) > 1:
+                result_name_items.append(item)
+        return ' '.join(result_name_items)
+
+
 def rdf_from_degree(degree, graph):
     degree_res = BNode()
     graph.add((degree_res, RDF.type, rdf_resource('Degree')))
@@ -343,13 +363,15 @@ def rdf_from_degree(degree, graph):
 
 def rdf_from_author(author, graph):
     author_res = BNode()
-    graph.add((author_res, RDF.type, rdf_resource('Author')))
+    graph.add((author_res, RDF.type, FOAF.Person))
 
     if 'name' in author:
-        graph.add((author_res, rdf_resource('name'), Literal(author['name'])))
+        graph.add((author_res, RDFS.label, Literal(author['name'])))
+        graph.add((author_res, FOAF.name, Literal(author['name'])))
+        graph.add((author_res, FOAF.surname, Literal(Helper.surname_from_fullname(author['name']))))
 
     if 'grade' in author:
-        graph.add((author_res, rdf_resource('grade'), rdf_from_degree(author['grade'], graph)))
+        graph.add((author_res, FOAF.title, rdf_from_degree(author['grade'], graph)))
 
     return author_res
 
@@ -359,49 +381,87 @@ def rdf_from_article(article, graph):
         return
 
     article_res = URIRef('http://' + urllib.quote('opticjourn.ru' + article['annotation_path']))
-    graph.add((article_res, RDF.type, rdf_resource('Article')))
+    # graph.add((article_res, RDF.type, rdf_resource('Article')))
+
+    graph.add((article_res, RDF.type, BIBO.Article))
 
     for key, value in article.iteritems():
-        if isinstance(value, unicode):
-            if key != 'annotation_path' and key != 'article_url':
-                graph.add((article_res, rdf_resource(key), Literal(value)))
-            elif key == 'article_url':
-                graph.add(
-                    (article_res, rdf_resource(key), URIRef('http://' + urllib.quote(value.replace('http://', '')))))
+        if key == 'title':
+            graph.add((article_res, RDFS.label, Literal(value)))
+            graph.add((article_res, FOAF.name, Literal(value)))
+            graph.add((article_res, DC.title, Literal(value)))
+
+        if key == 'received_date':
+            graph.add((article_res, DC.date, Literal('-'.join(reversed(value)), datatype=XSD.date)))
+
+        if key == 'pages':
+            graph.add((article_res, BIBO.pageStart, Literal(value['from'])))
+            graph.add((article_res, BIBO.pageEnd, Literal(value['to'])))
+
+        if key == 'description':
+            graph.add((article_res, RDFS.comment, Literal(value)))
+            graph.add((article_res, BIBO.anotates, Literal(value)))
+
+        if key == 'authors':
+            for author in value:
+                author_rdf = rdf_from_author(author, graph)
+                graph.add((article_res, DC.creator, author_rdf))
+
+        if key == 'article_url':
+            graph.add((article_res, BIBO.uri, URIRef('http://' + urllib.quote(value.replace('http://', '')))))
+
+        if key == 'annotation_path':
+            graph.add((article_res, FOAF.homepage, URIRef('http://' + urllib.quote(value.replace('http://', '')))))
+
+        if key == 'references':
+            for reference in value:
+                graph.add((article_res, BIBO.based_near, Literal(reference['raw_string'])))
+
+        # if key == 'udc_codes':
+        #     graph.add((article_res, BIBO.pageStart, Literal(value)))
+
         if isinstance(value, list):
             if key in ['ocis_codes', 'keywords_codes', 'udc_codes']:
                 for list_value in value:
                     graph.add((article_res, rdf_resource(key), Literal(list_value)))
-            elif key == 'received_date':
-                graph.add((article_res, rdf_resource(key), Literal('-'.join(reversed(value)), datatype=XSD.date)))
-            elif key == 'references':
-                for reference in value:
-                    graph.add((article_res, rdf_resource(key), Literal(reference['raw_string'])))
-            elif key == 'authors':
-                for author in value:
-                    graph.add((article_res, rdf_resource(key), rdf_from_author(author, graph)))
-        if key == 'pages':
-            graph.add((article_res, rdf_resource('from_page'), Literal(value['from'])))
-            graph.add((article_res, rdf_resource('to_page'), Literal(value['to'])))
 
     return article_res
 
 
 def rdf_from_volume(volume, year, graph):
     volume_res = URIRef('http://' + urllib.quote('opticjourn.ru' + volume['path']))
-    graph.add((volume_res, RDF.type, rdf_resource('Volume')))
+    graph.add((volume_res, RDF.type, BIBO.Issue))
 
     if 'number' in volume:
-        graph.add((volume_res, rdf_resource('number'), Literal(volume['number'])))
+        graph.add((volume_res, BIBO.issue, Literal(volume['number'])))
+        graph.add((volume_res, RDFS.label, Literal("Выпуск %s от %s г." % (str(volume['number']), str(year)))))
+        graph.add((volume_res, FOAF.name, Literal("Выпуск %s от %s г." % (str(volume['number']), str(year)))))
 
     for article in volume['articles']:
         article_res = rdf_from_article(article, graph)
         if article_res:
-            graph.add((volume_res, rdf_resource('articles'), article_res))
+            graph.add((article_res, DC.isPartOf, volume_res))
+            if 'number' in volume:
+                graph.add((article_res, BIBO.volume, Literal(volume['number'])))
+            graph.add((volume_res, BIBO.hasPart, article_res))
 
-    graph.add((volume_res, rdf_resource('year'), Literal(year, datatype=XSD.date)))
+    graph.add((volume_res, BIBO.date, Literal(year, datatype=XSD.date)))
 
     return volume_res
+
+
+def rdf_magazine(graph):
+    magazine_res = URIRef('http://opticjourn.ru')
+
+    graph.add((magazine_res, RDF.type, BIBO.Magazine))
+    graph.add((magazine_res, RDFS.label, Literal("Оптический журнал", lang='ru')))
+    graph.add((magazine_res, FOAF.name, Literal("Оптический журнал", lang='ru')))
+    graph.add((magazine_res, RDFS.label, Literal("Journal of Optical Technology", lang='en')))
+    graph.add((magazine_res, FOAF.name, Literal("Journal of Optical Technology", lang='en')))
+    graph.add((magazine_res, FOAF.homepage, Literal("http://opticjourn.ru")))
+    graph.add((magazine_res, BIBO.publisher, Literal("http://opticjourn.ru")))
+
+    return magazine_res
 
 
 def make_rdf():
@@ -410,11 +470,22 @@ def make_rdf():
 
         graph = Graph()
 
+        magazine_rdf = rdf_magazine(graph)
+
         for year, volumes in data.iteritems():
-            for volume in volumes:
-                rdf_from_volume(volume, year, graph)
+            for idx, volume in enumerate(volumes):
+                volume_rdf = rdf_from_volume(volume, year, graph)
+                graph.add((magazine_rdf, BIBO.hasPart, volume_rdf))
+                graph.add((volume_rdf, BIBO.volume, Literal(idx)))
+
+        graph.bind("dc", DC)
+        graph.bind("foaf", FOAF)
+        graph.bind("bibo", BIBO)
+        graph.bind("rdf", RDF)
+        graph.bind("rdfs", RDFS)
 
         print graph.serialize(destination='result.ttl', format='turtle')
 
 
 make_rdf()
+# load_data()
